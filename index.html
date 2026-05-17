@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>YouTube</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Roboto', sans-serif; background: #0f0f0f; color: #fff; }
+
+.yt-header {
+  position: sticky; top: 0; z-index: 100;
+  background: #0f0f0f; border-bottom: 1px solid #272727;
+  padding: 12px 16px; display: flex; align-items: center; gap: 16px;
+}
+.yt-logo { display: flex; align-items: center; gap: 6px; text-decoration: none; flex-shrink: 0; cursor: pointer; }
+.logo-icon { background: #ff0000; border-radius: 6px; width: 34px; height: 24px; display: flex; align-items: center; justify-content: center; }
+.logo-text { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+
+.search-bar {
+  flex: 1; max-width: 600px; display: flex; align-items: center;
+  border: 1px solid #303030; border-radius: 40px; overflow: hidden; background: #121212;
+}
+.search-bar input {
+  flex: 1; padding: 9px 18px; background: transparent;
+  border: none; color: #fff; font-size: 15px; outline: none;
+}
+.search-bar input::placeholder { color: #717171; }
+.search-btn {
+  padding: 9px 20px; background: #222; border: none; cursor: pointer;
+  color: #fff; border-left: 1px solid #303030; font-size: 16px;
+  display: flex; align-items: center; transition: background 0.15s;
+}
+.search-btn:hover { background: #3f3f3f; }
+
+.header-actions { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none;
+  background: transparent; color: #fff; cursor: pointer; font-size: 20px;
+  display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+}
+.icon-btn:hover { background: #272727; }
+.sign-in-btn {
+  padding: 8px 16px; border: 1px solid #3ea6ff; border-radius: 20px;
+  background: transparent; color: #3ea6ff; cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap; transition: background 0.15s;
+}
+.sign-in-btn:hover { background: rgba(62,166,255,0.1); }
+
+.main { display: flex; }
+
+.sidebar {
+  width: 72px; min-height: calc(100vh - 57px);
+  padding: 12px 0; position: sticky; top: 57px; height: calc(100vh - 57px);
+  overflow-y: auto; flex-shrink: 0; scrollbar-width: none;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+.sidebar-item {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 0; cursor: pointer; border-radius: 12px; margin: 2px 4px;
+  font-size: 10px; color: #aaa; gap: 5px; transition: background 0.15s, color 0.15s;
+}
+.sidebar-item:hover { background: #272727; color: #fff; }
+.sidebar-item.active { color: #fff; background: #272727; }
+.sidebar-icon { font-size: 22px; }
+
+.content { flex: 1; padding: 20px 16px; min-width: 0; }
+
+.chips {
+  display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none;
+}
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  padding: 6px 14px; border-radius: 8px; border: none; cursor: pointer;
+  font-size: 14px; white-space: nowrap; background: #272727; color: #fff;
+  transition: background 0.15s; flex-shrink: 0;
+}
+.chip:hover { background: #3f3f3f; }
+.chip.active { background: #fff; color: #0f0f0f; }
+
+.loading {
+  display: flex; justify-content: center; align-items: center;
+  height: 300px; flex-direction: column; gap: 16px; color: #aaa;
+}
+.spinner {
+  width: 44px; height: 44px; border: 3px solid #272727;
+  border-top-color: #ff0000; border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.video-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;
+}
+.video-card { cursor: pointer; }
+.video-card:hover .thumb-overlay { opacity: 1; }
+.video-card:hover .video-title { color: #3ea6ff; }
+
+.thumb-wrap { position: relative; border-radius: 10px; overflow: hidden; aspect-ratio: 16/9; background: #1e1e1e; }
+.thumb-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
+.video-card:hover .thumb-wrap img { transform: scale(1.03); }
+.thumb-placeholder { width: 100%; height: 100%; background: #1e1e1e; }
+.thumb-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.25);
+  opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center;
+}
+.play-overlay { font-size: 52px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+.duration {
+  position: absolute; bottom: 6px; right: 6px;
+  background: rgba(0,0,0,0.85); color: #fff; font-size: 12px;
+  padding: 2px 5px; border-radius: 4px; font-weight: 500;
+}
+.video-info { display: flex; gap: 12px; margin-top: 10px; }
+.channel-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; overflow: hidden; }
+.channel-avatar-placeholder {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; color: #fff;
+}
+.video-meta { flex: 1; min-width: 0; }
+.video-title {
+  font-size: 14px; font-weight: 500; line-height: 1.4; color: #fff;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  margin-bottom: 4px; transition: color 0.15s;
+}
+.channel-name { font-size: 13px; color: #aaa; margin-bottom: 2px; }
+.video-stats { font-size: 13px; color: #aaa; }
+
+.player-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: #0f0f0f; flex-direction: column;
+}
+.player-overlay.open { display: flex; }
+.player-header {
+  display: flex; align-items: center; padding: 12px 16px; gap: 12px;
+  border-bottom: 1px solid #272727; flex-shrink: 0;
+}
+.back-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none;
+  background: transparent; color: #fff; font-size: 22px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+}
+.back-btn:hover { background: #272727; }
+.player-title { font-size: 15px; font-weight: 500; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.player-body { display: flex; flex: 1; overflow: hidden; }
+.player-main { flex: 1; padding: 16px 20px; overflow-y: auto; max-width: 960px; margin: 0 auto; width: 100%; }
+
+.yt-iframe-wrap {
+  width: 100%; aspect-ratio: 16/9; background: #000;
+  border-radius: 10px; overflow: hidden; margin-bottom: 16px;
+}
+.yt-iframe-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
+
+.player-video-title { font-size: 20px; font-weight: 600; margin-bottom: 12px; line-height: 1.3; }
+.player-channel { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.player-avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;
+}
+.player-channel-name { font-size: 15px; font-weight: 600; }
+.player-subs { font-size: 13px; color: #aaa; }
+.sub-btn {
+  margin-left: auto; padding: 8px 18px; border-radius: 20px; border: none;
+  background: #fff; color: #0f0f0f; cursor: pointer; font-size: 14px; font-weight: 700; transition: background 0.15s;
+}
+.sub-btn:hover { background: #d9d9d9; }
+.sub-btn.subscribed { background: #272727; color: #fff; }
+.player-stats { font-size: 14px; color: #aaa; margin-bottom: 12px; }
+
+.action-bar { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+.action-pill {
+  display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+  background: #272727; border: none; color: #fff; border-radius: 20px;
+  cursor: pointer; font-size: 14px; transition: background 0.15s; white-space: nowrap;
+}
+.action-pill:hover { background: #3f3f3f; }
+.action-pill.active { background: #fff; color: #0f0f0f; }
+
+.description-box {
+  background: #1e1e1e; border-radius: 12px; padding: 14px 16px; font-size: 14px;
+  line-height: 1.7; color: #aaa; margin-top: 8px; cursor: pointer; transition: background 0.15s;
+}
+.description-box:hover { background: #272727; }
+.desc-title { color: #fff; font-weight: 600; margin-bottom: 6px; font-size: 15px; }
+
+.error-msg { text-align: center; padding: 60px 20px; color: #aaa; }
+.error-msg h3 { color: #fff; margin-bottom: 10px; font-size: 20px; }
+.retry-btn {
+  margin-top: 16px; padding: 10px 24px; background: #272727; border: none;
+  color: #fff; border-radius: 8px; cursor: pointer; font-size: 15px; transition: background 0.15s;
+}
+.retry-btn:hover { background: #3f3f3f; }
+
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 300px; gap: 12px; color: #aaa; text-align: center; font-size: 16px;
+}
+.search-heading { font-size: 18px; font-weight: 500; margin-bottom: 20px; color: #aaa; }
+.search-heading span { color: #fff; }
+
+#toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: #323232; color: #fff; padding: 12px 24px; border-radius: 8px;
+  font-size: 14px; z-index: 9999; opacity: 0; transition: opacity 0.25s;
+  pointer-events: none; white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+
+.modal-bg {
+  display: none; position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.85); align-items: center; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: #212121; border-radius: 14px; padding: 28px;
+  width: 500px; max-width: 95vw; border: 1px solid #383838;
+}
+.modal h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+.modal p { color: #aaa; font-size: 14px; line-height: 1.6; margin-bottom: 14px; }
+.modal input {
+  width: 100%; padding: 10px 14px; background: #121212; border: 1px solid #383838;
+  border-radius: 8px; color: #fff; font-size: 14px; outline: none; margin-bottom: 8px;
+}
+.modal input:focus { border-color: #3ea6ff; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+.modal-btn {
+  padding: 9px 20px; border-radius: 8px; border: none; cursor: pointer;
+  font-size: 14px; font-weight: 500; transition: background 0.15s;
+}
+.modal-btn.primary { background: #3ea6ff; color: #0f0f0f; }
+.modal-btn.primary:hover { background: #5bb5ff; }
+.modal-btn.secondary { background: #272727; color: #fff; }
+.modal-btn.secondary:hover { background: #3f3f3f; }
+.modal a { color: #3ea6ff; }
+.api-steps { background: #1a1a1a; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #aaa; line-height: 1.8; margin-bottom: 14px; }
+.api-steps b { color: #fff; }
+
+@media (max-width: 600px) {
+  .sidebar { width: 60px; }
+  .sidebar-item { padding: 12px 0; }
+  .sign-in-btn span { display: none; }
+  .player-main { padding: 12px; }
+  .player-video-title { font-size: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- API KEY MODAL -->
+<div class="modal-bg open" id="apiModal">
+  <div class="modal">
+    <h2>🎬 YouTube Clone — Sozlama</h2>
+    <p>Real YouTube videolarini ko'rish uchun <b>YouTube Data API v3</b> kaliti kerak. U mutlaqo <b>bepul</b>!</p>
+    <div class="api-steps">
+      <b>Kalit olish (3 qadam):</b><br>
+      1. <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> ga kiring<br>
+      2. APIs &amp; Services → Library → "YouTube Data API v3" → Enable<br>
+      3. Credentials → Create Credentials → API key → Nusxa oling
+    </div>
+    <input type="text" id="apiKeyInput" placeholder="AIzaSy... kalit shu yerga joylashtiring"/>
+    <p style="font-size:12px;color:#555;margin-bottom:0">Kalit faqat brauzeringizda saqlanadi, hech yerga yuborilmaydi.</p>
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="useDemoMode()">🎭 Demo rejim</button>
+      <button class="modal-btn primary" onclick="saveApiKey()">✅ Boshlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header class="yt-header">
+    <div class="yt-logo" onclick="showHome()">
+      <div class="logo-icon">
+        <svg width="18" height="13" viewBox="0 0 18 13"><path d="M6.5 9.5V3.5L12.5 6.5L6.5 9.5Z" fill="white"/></svg>
+      </div>
+      <span class="logo-text">YouTube</span>
+    </div>
+    <div class="search-bar">
+      <input id="searchInput" type="text" placeholder="Videolarni qidiring..." onkeydown="if(event.key==='Enter') doSearch()"/>
+      <button class="search-btn" onclick="doSearch()">🔍</button>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="showToast('🔔 Bildirishnomalar tez orada!')">🔔</button>
+      <button class="icon-btn" title="API sozlamalari" onclick="document.getElementById('apiModal').classList.add('open')">⚙️</button>
+      <button class="sign-in-btn">👤 <span>Kirish</span></button>
+    </div>
+  </header>
+
+  <div class="main">
+    <nav class="sidebar">
+      <div class="sidebar-item active" id="sb-home" onclick="showHome()">
+        <span class="sidebar-icon">🏠</span><span>Asosiy</span>
+      </div>
+      <div class="sidebar-item" id="sb-shorts" onclick="searchByCategory('shorts','sb-shorts')">
+        <span class="sidebar-icon">📱</span><span>Shorts</span>
+      </div>
+      <div class="sidebar-item" id="sb-music" onclick="searchByCategory('music','sb-music')">
+        <span class="sidebar-icon">🎵</span><span>Musiqa</span>
+      </div>
+      <div class="sidebar-item" id="sb-game" onclick="searchByCategory('gaming','sb-game')">
+        <span class="sidebar-icon">🎮</span><span>O'yin</span>
+      </div>
+      <div class="sidebar-item" id="sb-news" onclick="searchByCategory('news today','sb-news')">
+        <span class="sidebar-icon">📰</span><span>Yangilik</span>
+      </div>
+      <div class="sidebar-item" id="sb-sport" onclick="searchByCategory('sport highlights','sb-sport')">
+        <span class="sidebar-icon">⚽</span><span>Sport</span>
+      </div>
+      <div class="sidebar-item" id="sb-uz" onclick="searchByCategory('Uzbekistan','sb-uz')">
+        <span class="sidebar-icon">🇺🇿</span><span>O'zbek</span>
+      </div>
+    </nav>
+
+    <main class="content" id="mainContent">
+      <div class="chips" id="chipsRow">
+        <button class="chip active" onclick="setChip(this,'trending')">🔥 Trend</button>
+        <button class="chip" onclick="setChip(this,'music')">🎵 Musiqa</button>
+        <button class="chip" onclick="setChip(this,'gaming')">🎮 Gaming</button>
+        <button class="chip" onclick="setChip(this,'comedy')">😂 Komediya</button>
+        <button class="chip" onclick="setChip(this,'education')">📚 Ta'lim</button>
+        <button class="chip" onclick="setChip(this,'science technology')">🔬 Fan</button>
+        <button class="chip" onclick="setChip(this,'travel vlog')">✈️ Sayohat</button>
+        <button class="chip" onclick="setChip(this,'cooking recipe')">🍳 Taom</button>
+        <button class="chip" onclick="setChip(this,'Uzbekistan')">🇺🇿 O'zbekiston</button>
+        <button class="chip" onclick="setChip(this,'nature wildlife')">🌿 Tabiat</button>
+        <button class="chip" onclick="setChip(this,'cinema film')">🎬 Kino</button>
+      </div>
+      <div id="videoGrid">
+        <div class="loading"><div class="spinner"></div><span>Yuklanmoqda...</span></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- PLAYER -->
+<div class="player-overlay" id="playerOverlay">
+  <div class="player-header">
+    <button class="back-btn" onclick="closePlayer()">&#8592;</button>
+    <span class="player-title" id="playerHeaderTitle"></span>
+    <button class="icon-btn" onclick="shareVideo()">&#8599;</button>
+  </div>
+  <div class="player-body">
+    <div class="player-main">
+      <div class="yt-iframe-wrap" id="iframeWrap"></div>
+      <div class="player-video-title" id="pvTitle"></div>
+      <div class="player-channel">
+        <div class="player-avatar" id="pvAvatar"></div>
+        <div>
+          <div class="player-channel-name" id="pvChannel"></div>
+          <div class="player-subs" id="pvSubs"></div>
+        </div>
+        <button class="sub-btn" id="subBtn" onclick="toggleSub()">Obuna</button>
+      </div>
+      <div class="player-stats" id="pvStats"></div>
+      <div class="action-bar">
+        <button class="action-pill" id="likeBtn" onclick="toggleLike()">&#128077; <span id="likeCount">0</span></button>
+        <button class="action-pill" id="dislikeBtn" onclick="toggleDislike()">&#128078;</button>
+        <button class="action-pill" onclick="showToast('&#10003; Keyinroq ko\'rish ro\'yxatiga saqlandi!')">&#128204; Saqlash</button>
+        <button class="action-pill" onclick="shareVideo()">&#8599; Ulashish</button>
+        <button class="action-pill" onclick="showToast('&#11015; Yuklab olish tez orada!')">&#11015; Yuklab olish</button>
+      </div>
+      <div class="description-box" onclick="toggleDesc()">
+        <div class="desc-title">&#128203; Tavsif</div>
+        <div id="pvDesc" style="overflow:hidden;max-height:60px;transition:max-height 0.3s">...</div>
+        <div style="color:#3ea6ff;font-size:13px;margin-top:6px" id="descToggle">Ko'proq ko'rsatish &#9660;</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var API_KEY = localStorage.getItem('yt_api_key') || '';
+var currentQuery = 'trending';
+var liked = false, disliked = false, subscribed = false;
+var currentLikeCount = 0;
+var descExpanded = false;
+var demoMode = false;
+
+var DEMO_VIDEOS = [
+  {id:'dQw4w9WgXcQ',title:'Rick Astley - Never Gonna Give You Up',channel:'Rick Astley',views:'1.4B',date:'15 yil oldin',dur:'3:33'},
+  {id:'JGwWNGJdvx8',title:'Ed Sheeran - Shape of You',channel:'Ed Sheeran',views:'5.9B',date:'7 yil oldin',dur:'4:24'},
+  {id:'9bZkp7q19f0',title:'PSY - GANGNAM STYLE',channel:'officialpsy',views:'4.9B',date:'12 yil oldin',dur:'4:13'},
+  {id:'CevxZvSJLk8',title:'Katy Perry - Roar (Official)',channel:'Katy Perry',views:'3.5B',date:'11 yil oldin',dur:'4:33'},
+  {id:'fRh_vgS2dFE',title:'Justin Bieber - Sorry',channel:'Justin Bieber',views:'3.4B',date:'9 yil oldin',dur:'3:20'},
+  {id:'OPf0YbXqDm0',title:'Mark Ronson - Uptown Funk ft. Bruno Mars',channel:'Mark Ronson',views:'4.9B',date:'10 yil oldin',dur:'4:30'},
+  {id:'pRpeEdMmmQ0',title:'Shakira - Waka Waka (This Time for Africa)',channel:'Shakira',views:'3.2B',date:'14 yil oldin',dur:'3:42'},
+  {id:'YqeW9_5kURI',title:'Luis Fonsi - Despacito ft. Daddy Yankee',channel:'Luis Fonsi',views:'8.2B',date:'7 yil oldin',dur:'4:42'},
+  {id:'kffacxfA7G4',title:'Baby Shark Dance',channel:'Pinkfong',views:'13B',date:'6 yil oldin',dur:'2:17'},
+  {id:'lp-EzVlhsBE',title:'Eminem - Lose Yourself',channel:'Eminem',views:'2.2B',date:'20 yil oldin',dur:'5:22'},
+  {id:'7wtfhZwyrcc',title:'Maroon 5 - Sugar',channel:'Maroon 5',views:'3.5B',date:'9 yil oldin',dur:'5:01'},
+  {id:'hT_nvWreIhg',title:'OneRepublic - Counting Stars',channel:'OneRepublic',views:'3.3B',date:'11 yil oldin',dur:'4:17'}
+];
+
+window.onload = function() {
+  if (API_KEY) { closeModal(); fetchVideos('trending'); }
+};
+
+function closeModal() { document.getElementById('apiModal').classList.remove('open'); }
+
+function saveApiKey() {
+  var key = document.getElementById('apiKeyInput').value.trim();
+  if (!key || !key.startsWith('AIza')) {
+    showToast('Noto\'g\'ri kalit! AIza... bilan boshlanishi kerak');
+    return;
+  }
+  API_KEY = key;
+  localStorage.setItem('yt_api_key', key);
+  demoMode = false;
+  closeModal();
+  fetchVideos('trending');
+}
+
+function useDemoMode() {
+  demoMode = true; API_KEY = '';
+  closeModal();
+  showDemoVideos();
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(function(){ t.classList.remove('show'); }, 2800);
+}
+
+function formatNum(n) {
+  if (!n) return '0';
+  n = parseInt(n);
+  if (n >= 1000000000) return (n/1000000000).toFixed(1) + 'B';
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+  return n.toString();
+}
+
+function formatDate(s) {
+  if (!s) return '';
+  var d = new Date(s), diff = Math.floor((Date.now()-d)/1000);
+  if (diff < 3600) return Math.floor(diff/60)+' daqiqa oldin';
+  if (diff < 86400) return Math.floor(diff/3600)+' soat oldin';
+  if (diff < 2592000) return Math.floor(diff/86400)+' kun oldin';
+  if (diff < 31536000) return Math.floor(diff/2592000)+' oy oldin';
+  return Math.floor(diff/31536000)+' yil oldin';
+}
+
+function parseDuration(dur) {
+  var m = (dur||'').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return '';
+  var h=m[1]||0, mn=m[2]||0, sc=m[3]||0;
+  return h>0 ? h+':'+String(mn).padStart(2,'0')+':'+String(sc).padStart(2,'0') : mn+':'+String(sc).padStart(2,'0');
+}
+
+var COLORS=['#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63','#00bcd4','#ff5722'];
+function colorFor(n) { var h=0; for(var c of (n||'?')) h=(h*31+c.charCodeAt(0))%COLORS.length; return COLORS[h]; }
+
+function cardHTML(vid, title, channel, thumb, dur, views, date) {
+  var safeT = title.replace(/'/g,"\\'"); var safeC = channel.replace(/'/g,"\\'");
+  var col = colorFor(channel); var let1 = (channel||'?')[0].toUpperCase();
+  return '<div class="video-card" onclick="openVideo(\''+vid+'\',\''+safeT+'\',\''+safeC+'\',\''+views+'\',\''+date+'\',\'\')">'
+    +'<div class="thumb-wrap">'
+    +(thumb?'<img src="'+thumb+'" loading="lazy" alt="" onerror="this.style.display=\'none\'">':'<div class="thumb-placeholder"></div>')
+    +'<div class="thumb-overlay"><span class="play-overlay">&#9654;</span></div>'
+    +(dur?'<span class="duration">'+dur+'</span>':'')
+    +'</div>'
+    +'<div class="video-info">'
+    +'<div class="channel-avatar"><div class="channel-avatar-placeholder" style="background:'+col+'">'+let1+'</div></div>'
+    +'<div class="video-meta">'
+    +'<div class="video-title">'+title+'</div>'
+    +'<div class="channel-name">'+channel+'</div>'
+    +'<div class="video-stats">'+views+' ko\'rish &bull; '+date+'</div>'
+    +'</div></div></div>';
+}
+
+async function fetchVideos(query) {
+  if (demoMode) { showDemoVideos(); return; }
+  if (!API_KEY) return;
+  var grid = document.getElementById('videoGrid');
+  grid.innerHTML = '<div class="loading"><div class="spinner"></div><span>Yuklanmoqda...</span></div>';
+  try {
+    var sr = await fetch('https://www.googleapis.com/youtube/v3/search?part=snippet&q='+encodeURIComponent(query)+'&type=video&maxResults=24&key='+API_KEY);
+    var sd = await sr.json();
+    if (sd.error) throw new Error(sd.error.message);
+    if (!sd.items || !sd.items.length) { grid.innerHTML='<div class="empty-state">&#128577;<p>Natija topilmadi</p></div>'; return; }
+    var ids = sd.items.map(function(i){return i.id.videoId;}).filter(Boolean).join(',');
+    var vr = await fetch('https://www.googleapis.com/youtube/v3/videos?part=statistics,contentDetails&id='+ids+'&key='+API_KEY);
+    var vd = await vr.json();
+    var sm = {};
+    (vd.items||[]).forEach(function(v){ sm[v.id]=v; });
+    var html = '';
+    var sq = document.getElementById('searchInput').value.trim();
+    if (sq) html += '<p class="search-heading">Qidiruv natijalari: <span>"'+sq+'"</span></p>';
+    html += '<div class="video-grid">';
+    sd.items.forEach(function(item) {
+      var s = item.snippet, vid = item.id.videoId;
+      if (!vid) return;
+      var ex = sm[vid]||{};
+      var views = ex.statistics ? formatNum(ex.statistics.viewCount) : '?';
+      var dur = ex.contentDetails ? parseDuration(ex.contentDetails.duration) : '';
+      var thumb = (s.thumbnails&&s.thumbnails.medium) ? s.thumbnails.medium.url : (s.thumbnails&&s.thumbnails.default?s.thumbnails.default.url:'');
+      html += cardHTML(vid, s.title||'Sarlavhasiz', s.channelTitle||'Kanal', thumb, dur, views, formatDate(s.publishedAt));
+    });
+    html += '</div>';
+    grid.innerHTML = html;
+  } catch(e) {
+    grid.innerHTML = '<div class="error-msg"><h3>&#9888; Xatolik</h3><p>'+e.message+'</p>'
+      +'<button class="retry-btn" onclick="fetchVideos(currentQuery)">&#128260; Qayta urinish</button>'
+      +'<button class="retry-btn" onclick="useDemoMode()" style="margin-left:8px">&#127917; Demo rejim</button></div>';
+  }
+}
+
+function showDemoVideos() {
+  var html = '<div style="background:#1a1a1a;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#aaa;border-left:3px solid #ff0000">'
+    +'&#9888; Demo rejim &mdash; real videolar uchun API kalit kiriting '
+    +'<button onclick="document.getElementById(\'apiModal\').classList.add(\'open\')" '
+    +'style="background:#272727;border:none;color:#3ea6ff;cursor:pointer;padding:4px 10px;border-radius:6px;font-size:12px;margin-left:8px">'
+    +'API kalit qo\'shish</button></div><div class="video-grid">';
+  DEMO_VIDEOS.forEach(function(v) {
+    html += cardHTML(v.id, v.title, v.channel, 'https://img.youtube.com/vi/'+v.id+'/mqdefault.jpg', v.dur, v.views, v.date);
+  });
+  html += '</div>';
+  document.getElementById('videoGrid').innerHTML = html;
+}
+
+function openVideo(vid, title, channel, views, date, desc) {
+  document.getElementById('playerHeaderTitle').textContent = title;
+  document.getElementById('pvTitle').textContent = title;
+  document.getElementById('pvChannel').textContent = channel;
+  document.getElementById('pvSubs').textContent = 'Obunachilarga';
+  document.getElementById('pvStats').textContent = views + " ko'rish \u2022 " + date;
+  document.getElementById('pvDesc').textContent = desc || 'Bu video haqida qo\'shimcha ma\'lumot mavjud emas.';
+  var col = colorFor(channel);
+  var av = document.getElementById('pvAvatar');
+  av.style.background = col; av.textContent = (channel||'?')[0].toUpperCase();
+  var p = parseInt((views||'0').replace(/[KMB]/g,'').replace(/[^0-9]/g,''));
+  currentLikeCount = (isNaN(p)||p<1) ? Math.floor(Math.random()*50000+1000) : Math.max(100, Math.floor(p*0.04));
+  liked=false; disliked=false; subscribed=false;
+  document.getElementById('likeCount').textContent = formatNum(currentLikeCount);
+  document.getElementById('likeBtn').classList.remove('active');
+  document.getElementById('dislikeBtn').classList.remove('active');
+  document.getElementById('subBtn').textContent = 'Obuna';
+  document.getElementById('subBtn').classList.remove('subscribed');
+  descExpanded=false;
+  document.getElementById('pvDesc').style.maxHeight='60px';
+  document.getElementById('descToggle').textContent="Ko'proq ko'rsatish \u25BC";
+  document.getElementById('iframeWrap').innerHTML =
+    '<iframe src="https://www.youtube.com/embed/'+vid+'?autoplay=1&rel=0&modestbranding=1"'
+    +' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+  document.getElementById('playerOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closePlayer() {
+  document.getElementById('playerOverlay').classList.remove('open');
+  document.getElementById('iframeWrap').innerHTML='';
+  document.body.style.overflow='';
+}
+
+function toggleLike() {
+  liked=!liked;
+  if(liked){disliked=false;document.getElementById('dislikeBtn').classList.remove('active');}
+  currentLikeCount+=liked?1:-1;
+  document.getElementById('likeCount').textContent=formatNum(currentLikeCount);
+  document.getElementById('likeBtn').classList.toggle('active',liked);
+  showToast(liked?'Video yoqdi!':'Yoqtirish bekor qilindi');
+}
+function toggleDislike() {
+  disliked=!disliked;
+  if(disliked&&liked){liked=false;currentLikeCount--;document.getElementById('likeBtn').classList.remove('active');document.getElementById('likeCount').textContent=formatNum(currentLikeCount);}
+  document.getElementById('dislikeBtn').classList.toggle('active',disliked);
+  showToast(disliked?'Yoqtirmadingiz':'Bekor qilindi');
+}
+function toggleSub() {
+  subscribed=!subscribed;
+  var b=document.getElementById('subBtn');
+  b.textContent=subscribed?'\u2713 Obuna bo\'ldingiz':'Obuna';
+  b.classList.toggle('subscribed',subscribed);
+  showToast(subscribed?'Obuna bo\'ldingiz!':'Obunadan chiqildi');
+}
+function shareVideo() { showToast('Havola nusxalandi!'); }
+function toggleDesc() {
+  descExpanded=!descExpanded;
+  document.getElementById('pvDesc').style.maxHeight=descExpanded?'500px':'60px';
+  document.getElementById('descToggle').textContent=descExpanded?"Yopish \u25B2":"Ko'proq ko'rsatish \u25BC";
+}
+
+function doSearch() {
+  var q=document.getElementById('searchInput').value.trim();
+  if(!q) return;
+  currentQuery=q; clearSbActive(); fetchVideos(q);
+}
+function searchByCategory(cat,sbId) {
+  document.getElementById('searchInput').value='';
+  currentQuery=cat; clearChipActive(); clearSbActive();
+  if(sbId) document.getElementById(sbId).classList.add('active');
+  fetchVideos(cat);
+}
+function setChip(btn,query) {
+  clearChipActive(); clearSbActive();
+  btn.classList.add('active');
+  document.getElementById('sb-home').classList.add('active');
+  document.getElementById('searchInput').value='';
+  currentQuery=query; fetchVideos(query);
+}
+function showHome() {
+  document.getElementById('searchInput').value='';
+  currentQuery='trending'; clearChipActive(); clearSbActive();
+  document.querySelector('.chip').classList.add('active');
+  document.getElementById('sb-home').classList.add('active');
+  fetchVideos('trending');
+}
+function clearChipActive() { document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('active');}); }
+function clearSbActive() { document.querySelectorAll('.sidebar-item').forEach(function(s){s.classList.remove('active');}); }
+
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') closePlayer(); });
+</script>
+</body>
+</html>
